@@ -78,30 +78,18 @@
   <script type="text/javascript" src="//www.gstatic.com/cast/sdk/libs/receiver/2.0.0/cast_receiver.js"></script>
   <script type="text/javascript">
     window.onload = function() {
-      var status = document.getElementById("status");
-  
-      function setStatus(msg) {
-        if (msg) {
-          status.classList.remove("empty");
-        } else {
-          status.classList.add("empty");
-        }
-        status.textContent = msg;
-      }
-  
+      var status = document.getElementById("status");  
       function loadPage(url) {
-        setStatus("Force loading: " + url);
         window.setTimeout(function() { window.location = url; }, 1000);
       }
   
       cast.receiver.logger.setLevelValue(0);
-      var castReceiverManager = cast.receiver.CastReceiverManager.getInstance();
+      window.castReceiverManager = cast.receiver.CastReceiverManager.getInstance();
       castReceiverManager.onReady = function(event) {
         window.castReceiverManager.setApplicationState("Application ready");
-        setStatus("Waiting for address");
       };
   
-      window.messageBus = castReceiverManager.getCastMessageBus('urn:x-cast:energy.homecube.cast');
+      window.messageBus = window.castReceiverManager.getCastMessageBus('urn:x-cast:energy.homecube.cast');
       window.messageBus.onMessage = function(event) {
         var msg = JSON.parse(event.data);
         if (msg.force) {
@@ -109,7 +97,7 @@
         }
       };
   
-      castReceiverManager.start({statusText: "Application is starting"});
+      window.castReceiverManager.start({statusText: "Application is starting"});
     };
   </script>  
   </body>
