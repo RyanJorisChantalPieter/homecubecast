@@ -1,73 +1,80 @@
 <!DOCTYPE html>
 <html>
-  <head>
+
+<head>
   <title>HomeCube</title>
-    <style type="text/css">
-    html{
+  <style type="text/css">
+    html {
       height: 100%;
-      padding:0;
+      padding: 0;
       width: 100%;
     }
-	  body {
-	    overflow:hidden;
+
+    body {
+      overflow: hidden;
       height: 100%;
       padding: 0;
       margin: 0;
       background: white url("Capture.PNG") no-repeat 50% 50%;
-	  }
+    }
 
-    #main{
+    #main {
       height: 100%;
       background: white url("Capture.PNG") no-repeat 50% 50%;
       opacity: 0;
       transition: opacity 4s ease;
     }
 
-    #main, iframe{
+    #main,
+    iframe {
       background: white url("Capture.PNG") no-repeat 50% 50%;
     }
 
-    #main.show{
+    #main.show {
       opacity: 1;
     }
 
-    #status{
+    #status {
       transition: opacity 1s;
       position: absolute;
-      bottom:0;
-      left:0;
-      right:0;
+      bottom: 0;
+      left: 0;
+      right: 0;
       color: #555;
       font-weight: bold;
       height: 1.2em;
-      text-align: center; 
+      text-align: center;
       padding: 10px;
       background: rgba(255, 255, 255, 0.9);
       z-index: 10;
     }
 
-    #status.empty{
+    #status.empty {
       opacity: 0;
     }
-    
-    iframe{
+
+    iframe {
       position: absolute;
-      left:0; top:0; right:0; bottom:0;
+      left: 0;
+      top: 0;
+      right: 0;
+      bottom: 0;
       opacity: 0;
       transition: opacity 0;
       width: 100%;
       height: 100%;
       border: 0 transparent;
     }
-    iframe.show{
+
+    iframe.show {
       transition: opacity 1s;
       opacity: 1;
     }
+  </style>
+</head>
 
-    </style>
-  </head>
-  <body id="dcast">
-	 
+<body id="dcast">
+
   <div id="main" class="fade">
     <iframe id="if1"></iframe>
     <iframe id="if2"></iframe>
@@ -77,28 +84,77 @@
 
   <script type="text/javascript" src="//www.gstatic.com/cast/sdk/libs/receiver/2.0.0/cast_receiver.js"></script>
   <script type="text/javascript">
-    window.onload = function() {
-      var status = document.getElementById("status");  
-      function loadPage(url) {
-        window.setTimeout(function() { window.location = url; }, 1000);
+    window.onload = function () {
+
+      var main = document.getElementById("main");
+      var status = document.getElementById("status");
+
+      var if1 = document.getElementById("if1");
+      var if2 = document.getElementById("if2");
+      var current = if2;
+      var candidate = if1;
+
+      main.classList.add("show");
+
+      function setStatus(msg) {
+        if (msg) { status.classList.remove("empty"); }
+        else { status.classList.add("empty"); }
+        status.textContent = msg;
       }
-  
+
+      if2.onload = if1.onload = function (e) {
+        var the_if = this;
+        if (the_if.src.indexOf("dashcast_is_error_page_zz") > 0) {
+          the_if.src = the_if.getAttribute("target-src");
+          return;
+        }
+        if (the_if === candidate) {
+          if (timer_id) { window.clearTimeout(timer_id); }
+          current.style.zIndex = 2;
+          candidate.style.zIndex = 3;
+          candidate.classList.add("show");
+          var temp = current;
+          current = candidate;
+          candidate = temp;
+          if (reload_time) {
+            console.log("GOT RELOAD", reload_time)
+            timer_id = setTimeout(function () {
+              console.log("RELOADING");
+              loadFrame(the_if.src, reload_time);
+            }, reload_time);
+          }
+        }
+      }
+
+      function loadPage(url) {
+        window.setTimeout(function () { window.location = url; }, 1000);
+      }
+      function loadFrame(url, reload_time) {
+        window.reload_time = reload_time;
+        candidate.src = "error.html?dashcast_is_error_page_zz";
+        candidate.setAttribute("target-src", url);
+        candidate.classList.remove("show");
+        //candidate.src = url;
+      }
       cast.receiver.logger.setLevelValue(0);
       window.castReceiverManager = cast.receiver.CastReceiverManager.getInstance();
-      castReceiverManager.onReady = function(event) {
+      castReceiverManager.onReady = function (event) {
         window.castReceiverManager.setApplicationState("Application ready");
       };
-  
+
       window.messageBus = window.castReceiverManager.getCastMessageBus('urn:x-cast:energy.homecube.cast');
-      window.messageBus.onMessage = function(event) {
+      window.messageBus.onMessage = function (event) {
         var msg = JSON.parse(event.data);
         if (msg.force) {
           return loadPage(msg.url);
         }
+        loadFrame(msg.url, (msg.reload) ? parseInt(msg.reload_time, 10) : 0);
+        window.messageBus.send(event.senderId, event.data);
       };
-  
-      window.castReceiverManager.start({statusText: "Application is starting"});
+
+      window.castReceiverManager.start({ statusText: "Application is starting" });
     };
-  </script>  
-  </body>
+  </script>
+</body>
+
 </html>
